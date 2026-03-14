@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SpeechBoard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <h1>🌸 SpeechBoard</h1>
+
+  <div class="board" id="board"></div>
+
+  <!-- Add Word Modal -->
+  <div id="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.25); z-index:100; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:20px; padding:28px 24px; width:320px; display:flex; flex-direction:column; gap:14px;">
+      <h2 style="color:#7c6ea6; font-size:1.2rem;">Add a new word</h2>
+      <input id="new-label" type="text" placeholder="Word (e.g. outside)" maxlength="20"
+        style="border:2px solid #e8e0f5; border-radius:10px; padding:10px 14px; font-size:1rem; outline:none; color:#5a4f7a;"/>
+      <input id="new-emoji" type="text" placeholder="Emoji (e.g. 🌳)" maxlength="4"
+        style="border:2px solid #e8e0f5; border-radius:10px; padding:10px 14px; font-size:1.3rem; outline:none; color:#5a4f7a;"/>
+      <div style="display:flex; gap:10px; margin-top:4px;">
+        <button class="btn btn-speak" style="flex:1" onclick="saveNewWord()">Add</button>
+        <button class="btn btn-clear" style="flex:1" onclick="closeModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn btn-speak" style="margin-top:20px; font-size:1rem; padding:12px 28px;" onclick="openModal()">+ Add Word</button>
+
+  <!-- Sentence Bar -->
+  <div class="sentence-bar">
+    <div class="sentence-words" id="sentence-words">
+      <span class="placeholder" id="placeholder">Tap a card to start...</span>
+    </div>
+    <div class="bar-actions">
+      <button class="btn btn-speak" onclick="speakSentence()">▶ Speak</button>
+      <button class="btn btn-clear" onclick="clearSentence()">✕ Clear</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
