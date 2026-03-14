@@ -112,6 +112,7 @@ async function toggleRecord(word) {
     btn.textContent = '⏹ stop';
     btn.classList.add('recording');
 
+
     recorder.ondataavailable = e => chunks.push(e.data);
     recorder.onstop = async () => {
       const blob = new Blob(chunks, { type: 'audio/webm' });
