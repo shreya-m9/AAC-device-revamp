@@ -1,0 +1,126 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: #f5f0ff;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 16px 120px;
+}
+
+
+h1 {
+  font-size: 1.6rem;
+  color: #7c6ea6;
+  margin-bottom: 20px;
+  letter-spacing: 1px;
+}
+
+/* ── Word Cards ── */
+.board {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 16px;
+  width: 100%;
+  max-width: 780px;
+  margin-bottom: 24px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  border: 2px solid #e8e0f5;
+  transition: transform 0.15s, box-shadow 0.15s;
+  user-select: none;
+}
+
+.card:hover { transform: translateY(-3px); box-shadow: 0 6px 18px rgba(124,110,166,0.15); }
+.card:active { transform: scale(0.96); }
+.card.has-custom { border-color: #b5a9e0; background: #faf8ff; }
+
+.card .emoji { font-size: 2.2rem; }
+.card .label { font-size: 0.95rem; font-weight: 600; color: #5a4f7a; }
+
+.card .record-btn {
+  font-size: 0.7rem;
+  background: #ede8f8;
+  color: #7c6ea6;
+  border: none;
+  border-radius: 20px;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.card .record-btn:hover { background: #d9d0f0; }
+.card .record-btn.recording { background: #f8c8c8; color: #c0392b; }
+
+/* ── Sentence Bar ── */
+.sentence-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border-top: 2px solid #e8e0f5;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  z-index: 50;
+}
+
+.sentence-words {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 36px;
+  align-items: center;
+}
+
+.sentence-word {
+  background: #ede8f8;
+  color: #5a4f7a;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.sentence-word:hover { background: #d9d0f0; }
+
+.placeholder {
+  color: #c0b8d8;
+  font-size: 0.95rem;
+  font-style: italic;
+}
+
+.bar-actions { display: flex; gap: 8px; }
+
+/* ── Buttons ── */
+.btn {
+  border: none;
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+.btn:active { transform: scale(0.96); }
+
+.btn-speak { background: #b5a9e0; color: #fff; }
+.btn-speak:hover { background: #9f91d4; }
+
+.btn-clear { background: #f0ecfc; color: #9f91d4; }
+.btn-clear:hover { background: #e0d8f5; }
