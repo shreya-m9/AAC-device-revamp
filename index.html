@@ -1,46 +1,1253 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SpeechBoard</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Speakly</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#EFEEE9;--surface:#FFF;--border:rgba(0,0,0,0.12);
+  --text:#1A1A1A;--text2:#888;--accent:#3F35AF;--accent-light:#ECEAFE;
+  --r:15px;
+  --c-q:#BBE1FF;--c-p:#FFE1AA;--c-v:#B3EAD0;--c-d:#FFD2F7;--c-l:#F4A89A;--c-n:#D6F0FF;
+  --c-custom:#C3BEFB;
+}
+html,body{height:100%;background:var(--bg);font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;color:var(--text);overflow:hidden;}
+.app{display:flex;flex-direction:column;height:100vh;}
+
+/* TOP BAR */
+.topbar{height:100px;flex-shrink:0;background:var(--surface);display:flex;align-items:center;padding:0 24px;gap:16px;}
+.msg-area{flex:1;display:flex;align-items:center;gap:10px;padding:0 8px;min-height:36px;flex-wrap:wrap;}
+.msg-ph{font-size:20px;color:var(--text2);font-weight:400;}
+.mword{display:inline-flex;align-items:center;gap:6px;padding:6px 14px 6px 10px;border-radius:10px;font-size:16px;font-weight:500;cursor:pointer;background:var(--accent-light);color:var(--accent);animation:pop .16s cubic-bezier(.34,1.56,.64,1);user-select:none;transition:opacity .15s;}
+.mword:hover{opacity:.6;}
+@keyframes pop{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+.tb-btn{width:65px;height:65px;border-radius:var(--r);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .13s;background:var(--bg);font-size:26px;}
+.tb-btn:hover{background:#E0DFD8;}
+.tb-speak{width:157px;background:var(--accent);color:#fff;font-size:18px;font-weight:800;gap:10px;}
+.tb-speak:hover{opacity:.88;}
+.tb-speak:active{transform:scale(.97);}
+@keyframes spulse{0%,100%{box-shadow:0 0 0 0 rgba(63,53,175,.4)}50%{box-shadow:0 0 0 10px rgba(63,53,175,0)}}
+.tb-speak.go{animation:spulse .7s ease-out 2;}
+
+/* BODY */
+.body{flex:1;display:flex;overflow:hidden;}
+.board-col{flex:1;display:flex;flex-direction:column;padding:14px 14px 0;overflow:hidden;}
+
+/* filter row */
+.filter-row{margin-bottom:12px;flex-shrink:0;}
+.filter-bg{background:var(--surface);border-radius:var(--r);padding:10px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.fpill{padding:6px 16px;border-radius:30px;font-size:15px;font-weight:600;cursor:pointer;transition:all .13s;user-select:none;border:2.5px solid rgba(0,0,0,0.12);}
+.fpill.inactive{opacity:.32;}
+.fpill-add{width:34px;height:34px;border-radius:50%;background:var(--bg);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);transition:background .13s;flex-shrink:0;font-size:18px;margin-left:2px;}
+.fpill-add:hover{background:#E0DFD8;}
+
+/* learn banner */
+.learn-banner{display:none;background:var(--accent);color:#fff;border-radius:var(--r);padding:10px 18px;margin-bottom:12px;flex-shrink:0;align-items:center;gap:12px;font-size:15px;font-weight:600;}
+.learn-banner.visible{display:flex;}
+.learn-banner-exit{padding:6px 14px;background:rgba(255,255,255,.2);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;}
+.learn-banner-exit:hover{background:rgba(255,255,255,.35);}
+
+/* grid */
+.grid-scroll{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent;padding-bottom:12px;}
+.sym-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;align-content:start;}
+.grid-section-label{grid-column:1/-1;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);padding:4px 2px 2px;display:flex;align-items:center;gap:8px;}
+.grid-section-label::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* symbol card */
+.sc{aspect-ratio:1;border-radius:var(--r);border:3px solid rgba(0,0,0,0.15);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;text-align:center;padding:12px 8px 14px;position:relative;user-select:none;transition:transform .13s cubic-bezier(.34,1.3,.64,1),box-shadow .13s,border-color .13s;}
+.sc:hover{transform:scale(1.04);box-shadow:0 6px 22px rgba(0,0,0,.13);}
+.sc:active{transform:scale(.93);}
+.sc.tap{border-color:var(--accent)!important;}
+.sc.q{background:var(--c-q);}.sc.p{background:var(--c-p);}.sc.v{background:var(--c-v);}.sc.d{background:var(--c-d);}.sc.l{background:var(--c-l);}.sc.n{background:var(--c-n);}.sc.custom{background:var(--c-custom);}
+.sc-emoji{font-size:44px;line-height:1;}
+.sc-label{font-size:15px;font-weight:600;color:var(--text);line-height:1.2;}
+.sc-star-btn{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:7px;background:rgba(255,255,255,.7);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;opacity:0;transition:opacity .15s;border:none;z-index:2;}
+.sc:hover .sc-star-btn{opacity:1;}
+.sc-star-btn.starred{opacity:1;background:rgba(255,255,255,.9);color:#F5A623;}
+.sc-custom-badge{position:absolute;top:8px;left:8px;width:22px;height:22px;border-radius:6px;background:rgba(63,53,175,.8);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;pointer-events:none;}
+
+/* recording indicator on card */
+.sc-rec-badge{position:absolute;bottom:8px;left:8px;width:22px;height:22px;border-radius:6px;background:rgba(29,158,117,.85);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;pointer-events:none;display:none;}
+.sc.has-recording .sc-rec-badge{display:flex;}
+
+/* record button inside card (shows on hover) */
+.sc-rec-btn{position:absolute;bottom:8px;right:8px;padding:3px 9px;border-radius:20px;background:rgba(255,255,255,.85);border:1.5px solid rgba(0,0,0,.12);font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;opacity:0;transition:opacity .15s,background .12s;white-space:nowrap;z-index:2;}
+.sc:hover .sc-rec-btn{opacity:1;}
+.sc-rec-btn:hover{background:#fff;}
+.sc-rec-btn.recording{background:#FAECE7;border-color:#D85A30;color:#D85A30;}
+.sc.has-recording .sc-rec-btn{opacity:0;}
+.sc.has-recording:hover .sc-rec-btn{opacity:1;}
+
+/* learn mode */
+.learn-mode-grid .sc{cursor:pointer;}
+.learn-mode-grid .sc:hover{box-shadow:0 6px 22px rgba(63,53,175,.22);}
+.learn-mode-grid .sc-star-btn,.learn-mode-grid .sc-rec-btn{display:none;}
+
+/* QUICK PHRASES */
+.qp-panel{width:265px;flex-shrink:0;background:#D6D3C9;border-radius:var(--r);margin:14px 14px 0 0;display:flex;flex-direction:column;overflow:hidden;padding-bottom:14px;}
+.qp-title{font-size:20px;font-weight:700;padding:16px 18px 10px;flex-shrink:0;}
+.qp-list{flex:1;overflow-y:auto;padding:0 12px;display:flex;flex-direction:column;gap:7px;scrollbar-width:none;}
+.qp-list::-webkit-scrollbar{display:none;}
+.qp-item{background:var(--surface);border-radius:12px;padding:10px 13px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .12s;}
+.qp-item:hover{transform:translateX(3px);box-shadow:0 3px 12px rgba(0,0,0,.1);}
+.qp-dot{width:20px;height:20px;border-radius:50%;flex-shrink:0;}
+.qp-text{font-size:15px;font-weight:500;flex:1;line-height:1.3;}
+.qp-add-btn{margin:10px 12px 0;height:38px;background:var(--bg);border:2px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;color:var(--text2);flex-shrink:0;}
+.qp-add-btn:hover{background:#C8C5BB;}
+
+/* BOTTOM NAV */
+.bottomnav{height:115px;flex-shrink:0;background:var(--surface);display:flex;align-items:center;justify-content:space-around;padding:0 20px;}
+.bnav-item{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;padding:8px 18px;border-radius:var(--r);transition:background .13s;min-width:80px;}
+.bnav-item:hover{background:var(--bg);}
+.bnav-item.active-tab{background:var(--accent-light);}
+.bnav-item.active-tab .bnav-label{color:var(--accent);}
+.bnav-icon{width:32px;height:32px;display:flex;align-items:center;justify-content:center;}
+.bnav-icon svg{width:28px;height:28px;}
+.bnav-label{font-size:14px;font-weight:500;color:var(--text2);}
+
+/* OVERLAYS */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.32);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity .2s;}
+.overlay.show{opacity:1;pointer-events:all;}
+.modal{background:var(--surface);border-radius:22px;box-shadow:0 20px 60px rgba(0,0,0,.25);transition:transform .2s,opacity .2s;transform:scale(.94);opacity:0;}
+.overlay.show .modal{transform:scale(1);opacity:1;}
+
+/* FLASHCARD */
+.flashcard{width:480px;padding:38px;display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center;}
+.fc-emoji{width:130px;height:130px;border-radius:24px;display:flex;align-items:center;justify-content:center;font-size:76px;border:3px solid rgba(0,0,0,.12);}
+.fc-word{font-size:34px;font-weight:800;}
+.fc-pos{padding:4px 16px;border-radius:20px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;}
+.fc-desc{font-size:16px;color:var(--text2);line-height:1.65;max-width:360px;}
+.fc-actions{display:flex;gap:12px;margin-top:8px;width:100%;}
+.fc-btn{flex:1;height:50px;border:none;border-radius:13px;font-size:15px;font-weight:700;cursor:pointer;transition:all .13s;}
+.fc-btn.use{background:var(--accent);color:#fff;}.fc-btn.use:hover{opacity:.88;}
+.fc-btn.close{background:var(--bg);color:var(--text2);}.fc-btn.close:hover{background:#E0DFD8;}
+
+/* SETTINGS */
+.qs-modal{width:380px;padding:28px;display:flex;flex-direction:column;gap:18px;}
+.qsm-title{font-size:20px;font-weight:800;}
+.qsm-row{display:flex;flex-direction:column;gap:7px;}
+.qsm-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text2);}
+.qsm-slider-row{display:flex;align-items:center;gap:10px;}
+.qsm-slider-row input{flex:1;accent-color:var(--accent);cursor:pointer;}
+.qsm-val{font-size:14px;font-weight:700;color:var(--accent);min-width:38px;text-align:right;}
+.swatches-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.swatch{width:32px;height:32px;border-radius:8px;cursor:pointer;border:3px solid transparent;transition:all .13s;position:relative;flex-shrink:0;}
+.swatch:hover{transform:scale(1.1);}
+.swatch.active{border-color:var(--text);}
+.swatch.active::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;}
+.custom-color-btn{width:32px;height:32px;border-radius:8px;border:2.5px dashed var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;background:var(--bg);font-size:14px;transition:border-color .13s;flex-shrink:0;position:relative;overflow:hidden;}
+.custom-color-btn:hover{border-color:var(--accent);}
+.custom-color-btn input[type=color]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.qsm-close{align-self:flex-end;padding:8px 20px;background:var(--bg);border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;color:var(--text2);}
+.qsm-close:hover{background:#E0DFD8;}
+
+/* CREATE / PHRASE MODALS */
+.create-modal{width:540px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;}
+.cm-header{padding:24px 28px 16px;border-bottom:1px solid rgba(0,0,0,.07);flex-shrink:0;}
+.cm-title{font-size:20px;font-weight:800;}
+.cm-sub{font-size:13px;color:var(--text2);margin-top:3px;}
+.cm-body{flex:1;overflow-y:auto;padding:20px 28px;display:flex;flex-direction:column;gap:16px;scrollbar-width:thin;}
+.cm-field{display:flex;flex-direction:column;gap:6px;}
+.cm-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);}
+.cm-input{height:44px;border:1.5px solid rgba(0,0,0,.12);border-radius:12px;font-size:15px;padding:0 14px;background:var(--bg);color:var(--text);outline:none;font-family:inherit;width:100%;transition:border-color .13s;}
+.cm-input:focus{border-color:var(--accent);}
+.cm-textarea{min-height:72px;border:1.5px solid rgba(0,0,0,.12);border-radius:12px;font-size:14px;padding:12px 14px;background:var(--bg);color:var(--text);outline:none;resize:vertical;font-family:inherit;width:100%;line-height:1.5;transition:border-color .13s;}
+.cm-textarea:focus{border-color:var(--accent);}
+.cm-select{height:44px;border:1.5px solid rgba(0,0,0,.12);border-radius:12px;font-size:14px;padding:0 14px;background:var(--bg);color:var(--text);outline:none;cursor:pointer;width:100%;font-family:inherit;}
+.cm-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.cm-emoji-row{display:flex;gap:7px;flex-wrap:wrap;}
+.cm-emoji-opt{width:40px;height:40px;border-radius:10px;background:var(--bg);border:2px solid rgba(0,0,0,.1);display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;transition:all .12s;}
+.cm-emoji-opt:hover{background:var(--accent-light);border-color:var(--accent);transform:scale(1.1);}
+.cm-emoji-opt.picked{background:var(--accent-light);border-color:var(--accent);}
+.cm-emoji-input{width:52px;height:40px;border:2px solid rgba(0,0,0,.1);border-radius:10px;font-size:22px;text-align:center;background:var(--bg);color:var(--text);outline:none;padding:0;}
+.cm-preview{width:80px;height:80px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:48px;border:3px dashed rgba(0,0,0,.12);flex-shrink:0;cursor:pointer;}
+.cm-icon-row{display:flex;gap:14px;align-items:flex-start;}
+.cm-icon-opts{flex:1;display:flex;flex-direction:column;gap:8px;}
+.cm-toggle-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:12px;background:var(--bg);border:1.5px solid rgba(0,0,0,.1);}
+.cm-tl-info{flex:1;}.cm-tl-label{font-size:14px;font-weight:600;}.cm-tl-sub{font-size:11px;color:var(--text2);margin-top:1px;}
+.tog{width:44px;height:26px;border-radius:13px;background:#C8C5BB;border:none;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;outline:none;}
+.tog.on{background:var(--accent);}
+.tog::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.2);}
+.tog.on::after{left:21px;}
+.cm-rec-btn{display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:12px;border:1.5px solid rgba(0,0,0,.12);background:var(--bg);cursor:pointer;font-size:14px;font-weight:500;color:var(--text);transition:all .13s;width:fit-content;}
+.cm-rec-btn:hover{background:#E0DFD8;}
+.cm-rec-btn.recording{background:#FAECE7;border-color:#D85A30;color:#D85A30;}
+.rec-dot{width:10px;height:10px;border-radius:50%;background:currentColor;flex-shrink:0;}
+.cm-rec-btn.recording .rec-dot{animation:blink .7s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+.cm-playback{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;background:var(--accent-light);border:1.5px solid rgba(63,53,175,.2);width:fit-content;}
+.cm-play-btn{width:28px;height:28px;border-radius:50%;background:var(--accent);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;color:#fff;}
+.cm-footer{padding:16px 28px;border-top:1px solid rgba(0,0,0,.07);display:flex;gap:10px;flex-shrink:0;}
+.cm-save{flex:1;height:46px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .13s;}
+.cm-save:hover{opacity:.85;}
+.cm-cancel{height:46px;padding:0 20px;background:var(--bg);border:1.5px solid rgba(0,0,0,.1);border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;color:var(--text2);}
+.cm-cancel:hover{background:#E0DFD8;}
+
+/* QP BUILDER */
+.qp-builder{width:520px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;}
+.word-chips{display:flex;flex-wrap:wrap;gap:8px;padding:14px 16px;background:var(--bg);border-radius:12px;border:1.5px solid rgba(0,0,0,.1);min-height:56px;align-content:flex-start;}
+.wchip{display:inline-flex;align-items:center;gap:5px;padding:5px 10px 5px 8px;border-radius:8px;font-size:15px;font-weight:500;background:var(--accent-light);color:var(--accent);cursor:pointer;}
+.wchip:hover{opacity:.65;}
+.color-dot-pick{width:28px;height:28px;border-radius:50%;border:3px solid transparent;cursor:pointer;transition:all .13s;flex-shrink:0;position:relative;}
+.color-dot-pick.selected{border-color:var(--text);}
+.qp-word-grid{display:flex;flex-wrap:wrap;gap:7px;max-height:180px;overflow-y:auto;scrollbar-width:thin;}
+.qp-word-btn{padding:7px 13px;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;border:2px solid rgba(0,0,0,.1);background:var(--surface);color:var(--text);transition:all .12px;}
+.qp-word-btn:hover{border-color:var(--accent);background:var(--accent-light);color:var(--accent);}
+.qp-or-divider{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.06em;}
+.qp-or-divider::before,.qp-or-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* FILTER MODAL */
+.filter-modal{width:380px;padding:24px 28px;display:flex;flex-direction:column;gap:14px;}
+.fm-title{font-size:18px;font-weight:800;}
+.fm-opts{display:flex;flex-direction:column;gap:8px;}
+.fm-opt{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:var(--bg);cursor:pointer;transition:background .12s;border:2px solid transparent;}
+.fm-opt:hover{background:#E8E7E0;}
+.fm-opt.selected{border-color:var(--accent);background:var(--accent-light);}
+.fm-opt-dot{width:18px;height:18px;border-radius:5px;flex-shrink:0;}
+.fm-opt-label{font-size:15px;font-weight:600;flex:1;}
+.fm-opt-check{font-size:16px;color:var(--accent);}
+.fm-actions{display:flex;gap:10px;margin-top:4px;}
+.fm-apply{flex:1;height:44px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;}
+.fm-apply:hover{opacity:.88;}
+.fm-dismiss{height:44px;padding:0 18px;background:var(--bg);border:1.5px solid rgba(0,0,0,.1);border-radius:12px;font-size:14px;font-weight:600;color:var(--text2);cursor:pointer;}
+
+/* KB MODAL */
+.kb-modal{width:660px;padding:24px 28px 20px;display:flex;flex-direction:column;gap:12px;}
+.kb-preview-bar{background:var(--bg);border:1.5px solid rgba(0,0,0,.12);border-radius:12px;padding:10px 16px;display:flex;align-items:center;gap:10px;min-height:46px;}
+.kb-preview-text{flex:1;font-size:16px;font-weight:500;color:var(--text2);}
+.kb-add-btn{padding:7px 16px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;}
+.kb-add-btn:hover{opacity:.86;}
+.kb-pred{display:flex;gap:7px;flex-wrap:wrap;}
+.kb-pred-btn{padding:7px 14px;background:var(--bg);border:1.5px solid rgba(0,0,0,.1);border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;color:var(--text2);transition:all .12s;}
+.kb-pred-btn:hover{background:var(--accent-light);color:var(--accent);border-color:var(--accent);}
+.kb-rows{display:flex;flex-direction:column;gap:6px;}
+.kb-row{display:flex;gap:6px;justify-content:center;}
+.key{height:50px;min-width:44px;flex:1;max-width:54px;background:var(--surface);border:1.5px solid rgba(0,0,0,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:500;cursor:pointer;transition:all .1s;box-shadow:0 1px 3px rgba(0,0,0,.07);}
+.key:hover{background:#E8E7E0;transform:translateY(-1px);}
+.key:active{transform:scale(.93);}
+.key.wide{max-width:80px;font-size:13px;color:var(--text2);}
+.key.space{max-width:260px;font-size:13px;color:var(--text2);}
+
+/* LIBRARY MODAL */
+.lib-modal{width:700px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;}
+.lib-modal-header{padding:22px 28px 16px;border-bottom:1px solid rgba(0,0,0,.07);display:flex;align-items:center;gap:14px;flex-shrink:0;}
+.lib-modal-title{font-size:20px;font-weight:800;flex:1;}
+.lib-modal-count{font-size:13px;color:var(--text2);}
+.lib-modal-add{padding:9px 18px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .13s;}
+.lib-modal-add:hover{opacity:.85;}
+.lib-modal-close{width:36px;height:36px;border-radius:10px;background:var(--bg);border:none;cursor:pointer;font-size:18px;color:var(--text2);display:flex;align-items:center;justify-content:center;transition:background .13s;}
+.lib-modal-close:hover{background:#E0DFD8;}
+.lib-modal-body{flex:1;overflow-y:auto;padding:20px 28px;scrollbar-width:thin;}
+.lib-grid-inner{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;align-content:start;}
+.lib-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;gap:12px;color:var(--text2);text-align:center;}
+.lib-empty-icon{font-size:44px;opacity:.35;}
+.lib-empty-title{font-size:15px;font-weight:600;color:var(--text);}
+.lib-empty-sub{font-size:13px;line-height:1.6;max-width:200px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:130px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--text);color:#fff;padding:10px 22px;border-radius:30px;font-size:14px;font-weight:500;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;white-space:nowrap;z-index:999;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
 </head>
 <body>
+<div class="app">
 
-  <h1>🌸 SpeechBoard</h1>
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="msg-area" id="msg-area">
+      <span class="msg-ph" id="msg-ph">Tap words or type to build a message…</span>
+    </div>
+    <button class="tb-btn" id="undo-btn" onclick="undoWord()" style="display:none;font-size:26px;">↩</button>
+    <button class="tb-btn" onclick="clearMsg()" style="font-size:26px;">✕</button>
+    <button class="tb-btn tb-speak" id="speak-btn" onclick="speakMsg()">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+      Speak
+    </button>
+  </div>
 
-  <div class="board" id="board"></div>
-
-  
-  <!-- Add Word Modal -->
-  <div id="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.25); z-index:100; align-items:center; justify-content:center;">
-    <div style="background:#fff; border-radius:20px; padding:28px 24px; width:320px; display:flex; flex-direction:column; gap:14px;">
-      <h2 style="color:#7c6ea6; font-size:1.2rem;">Add a new word</h2>
-      <input id="new-label" type="text" placeholder="Word (e.g. outside)" maxlength="20"
-        style="border:2px solid #e8e0f5; border-radius:10px; padding:10px 14px; font-size:1rem; outline:none; color:#5a4f7a;"/>
-      <input id="new-emoji" type="text" placeholder="Emoji (e.g. 🌳)" maxlength="4"
-        style="border:2px solid #e8e0f5; border-radius:10px; padding:10px 14px; font-size:1.3rem; outline:none; color:#5a4f7a;"/>
-      <div style="display:flex; gap:10px; margin-top:4px;">
-        <button class="btn btn-speak" style="flex:1" onclick="saveNewWord()">Add</button>
-        <button class="btn btn-clear" style="flex:1" onclick="closeModal()">Cancel</button>
+  <!-- BODY -->
+  <div class="body">
+    <div class="board-col" id="board-col">
+      <div class="learn-banner" id="learn-banner">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        <span style="flex:1;">Learning mode — tap any card to see its flashcard</span>
+        <button class="learn-banner-exit" onclick="exitLearn()">Exit learning mode</button>
+      </div>
+      <div class="filter-row" id="filter-row">
+        <div class="filter-bg" id="filter-bg">
+          <div class="fpill active" style="background:var(--c-q)" data-pos="q" onclick="toggleFilter(this)">Questions</div>
+          <div class="fpill active" style="background:var(--c-p)" data-pos="p" onclick="toggleFilter(this)">Pronouns</div>
+          <div class="fpill active" style="background:var(--c-v)" data-pos="v" onclick="toggleFilter(this)">Verbs</div>
+          <div class="fpill active" style="background:var(--c-d)" data-pos="d" onclick="toggleFilter(this)">Describing</div>
+          <div class="fpill active" style="background:var(--c-l)" data-pos="l" onclick="toggleFilter(this)">Little words</div>
+          <div class="fpill active" style="background:var(--c-custom)" data-pos="custom" onclick="toggleFilter(this)">My words</div>
+          <div class="fpill-add" onclick="openFilterModal()">+</div>
+        </div>
+      </div>
+      <div class="grid-scroll">
+        <div class="sym-grid" id="sym-grid"></div>
       </div>
     </div>
-  </div>
 
-  <button class="btn btn-speak" style="margin-top:20px; font-size:1rem; padding:12px 28px;" onclick="openModal()">+ Add Word</button>
-
-  <!-- Sentence Bar -->
-  <div class="sentence-bar">
-    <div class="sentence-words" id="sentence-words">
-      <span class="placeholder" id="placeholder">Tap a card to start...</span>
-    </div>
-    <div class="bar-actions">
-      <button class="btn btn-speak" onclick="speakSentence()">▶ Speak</button>
-      <button class="btn btn-clear" onclick="clearSentence()">✕ Clear</button>
+    <!-- QUICK PHRASES -->
+    <div class="qp-panel">
+      <div class="qp-title">Quick Phrases</div>
+      <div class="qp-list" id="qp-list"></div>
+      <div class="qp-add-btn" onclick="openQPBuilder()">+</div>
     </div>
   </div>
 
-  <script src="script.js"></script>
+  <!-- BOTTOM NAV -->
+  <div class="bottomnav">
+    <div class="bnav-item" id="nav-kb" onclick="openKB()">
+      <div class="bnav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M6 14h.01M18 14h.01M10 14h4"/></svg></div>
+      <div class="bnav-label">Keyboard</div>
+    </div>
+    <div class="bnav-item" id="nav-learn" onclick="toggleLearnMode()">
+      <div class="bnav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+      <div class="bnav-label" id="learn-label">Learn</div>
+    </div>
+    <div class="bnav-item" id="nav-create" onclick="openCreate()">
+      <div class="bnav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+      <div class="bnav-label">Create</div>
+    </div>
+    <div class="bnav-item" id="nav-library" onclick="toggleLibrary()">
+      <div class="bnav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+      <div class="bnav-label">Library</div>
+    </div>
+    <div class="bnav-item" id="nav-settings" onclick="openOv('ov-qs')">
+      <div class="bnav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+      <div class="bnav-label">Settings</div>
+    </div>
+  </div>
+</div>
+
+<!-- FLASHCARD -->
+<div class="overlay" id="ov-flash" onclick="if(event.target===this)closeOv('ov-flash')">
+  <div class="modal flashcard">
+    <div class="fc-emoji" id="fc-emoji"></div>
+    <div class="fc-word" id="fc-word"></div>
+    <div class="fc-pos" id="fc-pos"></div>
+    <div class="fc-desc" id="fc-desc"></div>
+    <div class="fc-actions">
+      <button class="fc-btn close" onclick="closeOv('ov-flash')">Close</button>
+      <button class="fc-btn use" onclick="useFlashcard()">+ Add to message</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="overlay" id="ov-qs" onclick="if(event.target===this)closeOv('ov-qs')">
+  <div class="modal qs-modal">
+    <div class="qsm-title">Settings</div>
+    <div class="qsm-row">
+      <div class="qsm-label">Speech speed</div>
+      <div class="qsm-slider-row"><span>🐢</span><input type="range" min="50" max="150" value="85" id="sl-speed" oninput="updateSl('sl-speed','sv-speed','speed')"><span>🐇</span><span class="qsm-val" id="sv-speed">85%</span></div>
+    </div>
+    <div class="qsm-row">
+      <div class="qsm-label">Pitch</div>
+      <div class="qsm-slider-row"><span>⬇️</span><input type="range" min="50" max="200" value="105" id="sl-pitch" oninput="updateSl('sl-pitch','sv-pitch','pitch')"><span>⬆️</span><span class="qsm-val" id="sv-pitch">105%</span></div>
+    </div>
+    <div class="qsm-row">
+      <div class="qsm-label">Volume</div>
+      <div class="qsm-slider-row"><span>🔈</span><input type="range" min="10" max="100" value="90" id="sl-vol" oninput="updateSl('sl-vol','sv-vol','vol')"><span>🔊</span><span class="qsm-val" id="sv-vol">90%</span></div>
+    </div>
+    <div class="qsm-row">
+      <div class="qsm-label">Accent colour</div>
+      <div class="swatches-row">
+        <div class="swatch active" style="background:#3F35AF" data-c="#3F35AF" data-l="#ECEAFE" onclick="setTheme(this)"></div>
+        <div class="swatch" style="background:#1D9E75" data-c="#1D9E75" data-l="#E1F5EE" onclick="setTheme(this)"></div>
+        <div class="swatch" style="background:#D85A30" data-c="#D85A30" data-l="#FAECE7" onclick="setTheme(this)"></div>
+        <div class="swatch" style="background:#993556" data-c="#993556" data-l="#FBEAF0" onclick="setTheme(this)"></div>
+        <div class="swatch" style="background:#222" data-c="#222" data-l="#EFEFEB" onclick="setTheme(this)"></div>
+        <div class="custom-color-btn" title="Pick custom colour" id="custom-swatch">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>
+          <input type="color" id="custom-color-input" value="#3F35AF" oninput="applyCustomColor(this.value)">
+        </div>
+      </div>
+    </div>
+    <button class="qsm-close" onclick="closeOv('ov-qs')">Done</button>
+  </div>
+</div>
+
+<!-- CREATE WORD -->
+<div class="overlay" id="ov-create" onclick="if(event.target===this)closeOv('ov-create')">
+  <div class="modal create-modal">
+    <div class="cm-header"><div class="cm-title">Create a word</div><div class="cm-sub">Only the name is required</div></div>
+    <div class="cm-body">
+      <div class="cm-field">
+        <div class="cm-label">Icon</div>
+        <div class="cm-icon-row">
+          <div class="cm-preview" id="cm-preview">⭐</div>
+          <div class="cm-icon-opts">
+            <div class="cm-emoji-row" id="cm-egrid"></div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+              <span style="font-size:11px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Custom:</span>
+              <input class="cm-emoji-input" id="cm-ei" type="text" maxlength="2" placeholder="😊" oninput="setCMEmoji(this.value)">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="cm-field">
+        <div class="cm-label">Photo (optional)</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div id="cm-photo-prev" style="width:56px;height:56px;border-radius:12px;background:var(--bg);border:2px dashed rgba(0,0,0,.12);display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;overflow:hidden;" onclick="document.getElementById('cm-pf').click()">📷</div>
+          <input type="file" id="cm-pf" accept="image/*" style="display:none" onchange="handlePhoto(this)">
+          <button style="padding:8px 14px;border:1.5px solid rgba(0,0,0,.12);border-radius:10px;background:var(--bg);font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;" onclick="document.getElementById('cm-pf').click()">📁 Upload photo</button>
+        </div>
+      </div>
+      <div class="cm-2col">
+        <div class="cm-field"><div class="cm-label">Word / phrase *</div><input class="cm-input" id="cm-name" type="text" placeholder="e.g. I feel good"></div>
+        <div class="cm-field"><div class="cm-label">Category</div>
+          <select class="cm-select" id="cm-pos"><option value="n">Noun</option><option value="v">Verb</option><option value="q">Question</option><option value="p">Pronoun</option><option value="d">Describing word</option><option value="l">Little word</option></select>
+        </div>
+      </div>
+      <div class="cm-field"><div class="cm-label">Description</div><textarea class="cm-textarea" id="cm-desc" placeholder="When and how do you use this word?"></textarea></div>
+      <div class="cm-field">
+        <div class="cm-label">Voice recording</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="font-size:12px;color:var(--text2);line-height:1.5;">Record this word — it will be saved to the server and played back instead of the system voice.</div>
+          <button class="cm-rec-btn" id="cm-rec-btn" onclick="toggleRec()"><div class="rec-dot"></div><span id="cm-rec-lbl">Start recording</span></button>
+          <div class="cm-playback" id="cm-playback" style="display:none;">
+            <button class="cm-play-btn" onclick="playRec()">▶</button>
+            <span style="font-size:13px;font-weight:500;color:var(--accent);flex:1;">Recording ready</span>
+            <span style="font-size:12px;color:var(--text2);cursor:pointer;text-decoration:underline;" onclick="clearRec()">Remove</span>
+          </div>
+        </div>
+      </div>
+      <div class="cm-field">
+        <div class="cm-label">Add to</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div class="cm-toggle-row"><div class="cm-tl-info"><div class="cm-tl-label">Core board</div><div class="cm-tl-sub">Shows alongside built-in words</div></div><button class="tog on" id="tog-core" onclick="this.classList.toggle('on')"></button></div>
+          <div class="cm-toggle-row"><div class="cm-tl-info"><div class="cm-tl-label">Quick Phrases</div><div class="cm-tl-sub">One-tap speak, no sentence building</div></div><button class="tog" id="tog-qf" onclick="this.classList.toggle('on')"></button></div>
+        </div>
+      </div>
+    </div>
+    <div class="cm-footer">
+      <button class="cm-cancel" onclick="closeOv('ov-create')">Cancel</button>
+      <button class="cm-save" onclick="saveWord()">✦ Save word</button>
+    </div>
+  </div>
+</div>
+
+<!-- QP BUILDER -->
+<div class="overlay" id="ov-qpb" onclick="if(event.target===this)closeOv('ov-qpb')">
+  <div class="modal qp-builder">
+    <div class="cm-header"><div class="cm-title">New quick phrase</div><div class="cm-sub">Build your phrase by tapping words, or type it out</div></div>
+    <div class="cm-body">
+      <div class="cm-field">
+        <div class="cm-label">Your phrase</div>
+        <div class="word-chips" id="qpb-chips"><span style="font-size:14px;color:var(--text2);align-self:center;" id="qpb-ph">Tap words below or type…</span></div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <input class="cm-input" id="qpb-type" type="text" placeholder="Or type a word and press Enter" style="flex:1;" onkeydown="if(event.key==='Enter'){addQPWord(this.value);this.value='';}">
+          <button onclick="addQPWord(document.getElementById('qpb-type').value);document.getElementById('qpb-type').value='';" style="padding:0 16px;height:44px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;">Add</button>
+        </div>
+      </div>
+      <div class="cm-field">
+        <div class="qp-or-divider">Or pick from core words</div>
+        <div class="qp-word-grid" id="qpb-word-grid"></div>
+      </div>
+      <div class="cm-field">
+        <div class="cm-label">Phrase colour dot</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <div class="color-dot-pick selected" style="background:#D544C0" data-dot="#D544C0" onclick="selectQPDot(this)"></div>
+          <div class="color-dot-pick" style="background:#5580FF" data-dot="#5580FF" onclick="selectQPDot(this)"></div>
+          <div class="color-dot-pick" style="background:#1D9E75" data-dot="#1D9E75" onclick="selectQPDot(this)"></div>
+          <div class="color-dot-pick" style="background:#E6A800" data-dot="#E6A800" onclick="selectQPDot(this)"></div>
+          <div class="color-dot-pick" style="background:#D85A30" data-dot="#D85A30" onclick="selectQPDot(this)"></div>
+          <div class="color-dot-pick" style="background:#993556" data-dot="#993556" onclick="selectQPDot(this)"></div>
+          <div class="color-dot-pick" style="background:#534AB7" data-dot="#534AB7" onclick="selectQPDot(this)"></div>
+          <div class="color-dot-pick" style="background:#333" data-dot="#333" onclick="selectQPDot(this)"></div>
+          <div style="position:relative;width:28px;height:28px;border-radius:50%;border:3px dashed rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <input type="color" value="#D544C0" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;" oninput="setCustomQPDot(this.value)">
+          </div>
+        </div>
+        <div style="margin-top:10px;display:flex;align-items:center;gap:10px;">
+          <div id="qpb-dot-preview" style="width:26px;height:26px;border-radius:50%;background:#D544C0;flex-shrink:0;"></div>
+          <span style="font-size:13px;color:var(--text2);">This colour will show next to your phrase</span>
+        </div>
+      </div>
+    </div>
+    <div class="cm-footer">
+      <button class="cm-cancel" onclick="closeOv('ov-qpb')">Cancel</button>
+      <button class="cm-save" onclick="saveQP()">+ Save phrase</button>
+    </div>
+  </div>
+</div>
+
+<!-- FILTER MODAL -->
+<div class="overlay" id="ov-filter" onclick="if(event.target===this)closeOv('ov-filter')">
+  <div class="modal filter-modal">
+    <div class="fm-title">Manage filters</div>
+    <div class="fm-opts" id="fm-opts"></div>
+    <div class="fm-actions">
+      <button class="fm-dismiss" onclick="closeOv('ov-filter')">Cancel</button>
+      <button class="fm-apply" onclick="applyFilters()">Apply</button>
+    </div>
+  </div>
+</div>
+
+<!-- KEYBOARD -->
+<div class="overlay" id="ov-kb" onclick="if(event.target===this)closeOv('ov-kb')">
+  <div class="modal kb-modal">
+    <div style="font-size:18px;font-weight:800;">Keyboard</div>
+    <div class="kb-preview-bar"><div class="kb-preview-text" id="kbpt" style="color:var(--text2)">Start typing…</div><button class="kb-add-btn" onclick="addKBWord()">+ Add</button></div>
+    <div class="kb-pred">
+      <div class="kb-pred-btn" onclick="kbPred('I want')">I want</div>
+      <div class="kb-pred-btn" onclick="kbPred('I feel')">I feel</div>
+      <div class="kb-pred-btn" onclick="kbPred('I need')">I need</div>
+      <div class="kb-pred-btn" onclick="kbPred('please')">please</div>
+      <div class="kb-pred-btn" onclick="kbPred('help')">help</div>
+      <div class="kb-pred-btn" onclick="kbPred('thank you')">thank you</div>
+    </div>
+    <div class="kb-rows" id="kb-rows"></div>
+  </div>
+</div>
+
+<!-- LIBRARY -->
+<div class="overlay" id="library-overlay" onclick="if(event.target===this)toggleLibrary()">
+  <div class="modal lib-modal">
+    <div class="lib-modal-header">
+      <div class="lib-modal-title">My words</div>
+      <div class="lib-modal-count" id="lib-count">0 words saved</div>
+      <button class="lib-modal-add" onclick="libraryOpen=false;closeOv('library-overlay');document.getElementById('nav-library').classList.remove('active-tab');openCreate()">+ Create word</button>
+      <button class="lib-modal-close" onclick="toggleLibrary()">✕</button>
+    </div>
+    <div class="lib-modal-body">
+      <div class="lib-empty" id="lib-empty">
+        <div class="lib-empty-icon">✦</div>
+        <div class="lib-empty-title">No custom words yet</div>
+        <div class="lib-empty-sub">Hit "Create word" to add your first.</div>
+      </div>
+      <div class="lib-grid-inner" id="lib-grid-inner"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  BASE VOCABULARY  (mirrors your original script.js words)
+// ═══════════════════════════════════════════════════════
+const BASE = [
+  {i:'❓',l:'what',   pos:'q',desc:'Ask about a thing or situation.'},
+  {i:'🙋',l:'who',    pos:'q',desc:'Ask about a person.'},
+  {i:'📍',l:'where',  pos:'q',desc:'Ask about a location.'},
+  {i:'⏰',l:'when',   pos:'q',desc:'Ask about a time.'},
+  {i:'🤔',l:'why',    pos:'q',desc:'Ask for a reason.'},
+  {i:'🧍',l:'I',      pos:'p',desc:'Refers to yourself.'},
+  {i:'👤',l:'you',    pos:'p',desc:'The person you\'re speaking to.'},
+  {i:'👥',l:'we',     pos:'p',desc:'Yourself and others.'},
+  {i:'🫵',l:'they',   pos:'p',desc:'Other people.'},
+  {i:'👨',l:'he',     pos:'p',desc:'A man or boy.'},
+  {i:'👩',l:'she',    pos:'p',desc:'A woman or girl.'},
+  {i:'🙋',l:'want',   pos:'v',desc:'Express a desire for something.'},
+  {i:'❤️',l:'like',   pos:'v',desc:'Feel positively about something.'},
+  {i:'🚶',l:'go',     pos:'v',desc:'Move or travel somewhere.'},
+  {i:'👁',l:'see',    pos:'v',desc:'Observe or notice.'},
+  {i:'🤲',l:'have',   pos:'v',desc:'Possess or own.'},
+  {i:'💬',l:'say',    pos:'v',desc:'Speak or express words.'},
+  {i:'🍽',l:'eat',    pos:'v',desc:'Consume food.'},
+  {i:'💤',l:'sleep',  pos:'v',desc:'Rest the body.'},
+  {i:'🎮',l:'play',   pos:'v',desc:'Engage in a fun activity.'},
+  {i:'✋',l:'help',   pos:'v',desc:'Assist or support someone.'},
+  {i:'😔',l:'feel',   pos:'v',desc:'Experience an emotion.'},
+  {i:'🔴',l:'stop',   pos:'v',desc:'Cease something.'},
+  {i:'🍎',l:'apple',  pos:'n',desc:'A fruit.'},
+  {i:'💧',l:'water',  pos:'n',desc:'Something to drink.'},
+  {i:'🏠',l:'home',   pos:'n',desc:'Where you live.'},
+  {i:'🎵',l:'music',  pos:'n',desc:'Something to listen to.'},
+  {i:'⬆️',l:'more',   pos:'d',desc:'A greater amount.'},
+  {i:'✅',l:'yes',    pos:'d',desc:'Agreement or confirmation.'},
+  {i:'❌',l:'no',     pos:'d',desc:'Disagreement or refusal.'},
+  {i:'😌',l:'okay',   pos:'d',desc:'Acceptable or fine.'},
+  {i:'😣',l:'not okay',pos:'d',desc:'Something is wrong.'},
+  {i:'😤',l:'frustrated',pos:'d',desc:'Feeling annoyed.'},
+  {i:'😨',l:'anxious',pos:'d',desc:'Feeling worried.'},
+  {i:'😴',l:'tired',  pos:'d',desc:'Needing rest.'},
+  {i:'🔁',l:'again',  pos:'l',desc:'One more time.'},
+  {i:'⚡',l:'now',    pos:'l',desc:'At this moment.'},
+  {i:'⏳',l:'later',  pos:'l',desc:'At a future time.'},
+  {i:'🔴',l:'all done',pos:'l',desc:'Finished.'},
+  {i:'🙏',l:'please', pos:'l',desc:'A polite request word.'},
+  {i:'💙',l:'thank you',pos:'l',desc:'Expressing gratitude.'},
+];
+
+const QP_DATA = [
+  {dot:'#D544C0',t:'I need help'},
+  {dot:'#5580FF',t:'I want water'},
+  {dot:'#1D9E75',t:'I need a break'},
+  {dot:'#E6A800',t:'Yes please'},
+  {dot:'#D85A30',t:'No thank you'},
+  {dot:'#993556',t:'I feel anxious'},
+  {dot:'#534AB7',t:'I am overwhelmed'},
+  {dot:'#333',   t:'One moment please'},
+];
+
+const FILTER_DEFS = [
+  {pos:'q',label:'Questions',  color:'var(--c-q)'},
+  {pos:'p',label:'Pronouns',   color:'var(--c-p)'},
+  {pos:'v',label:'Verbs',      color:'var(--c-v)'},
+  {pos:'d',label:'Describing', color:'var(--c-d)'},
+  {pos:'l',label:'Little words',color:'var(--c-l)'},
+  {pos:'custom',label:'My words',color:'var(--c-custom)'},
+];
+
+const EMOJI_SUGG = ['😊','🏠','🐕','🐱','☕','💊','🚗','🎵','📱','🌿','⭐','💙','🌈','🎯','🍎','🎮','📚','🤝','🛏','🌙'];
+const POS_COLORS = {q:'var(--c-q)',p:'var(--c-p)',v:'var(--c-v)',d:'var(--c-d)',l:'var(--c-l)',custom:'var(--c-custom)',n:'var(--c-n)'};
+const POS_NAMES  = {q:'Question',p:'Pronoun',v:'Verb',d:'Describing word',l:'Little word',custom:'My word',n:'Noun'};
+
+// ═══════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════
+let sentence = [], customWords = [], qpData = [...QP_DATA];
+let starredIds = new Set(), activeFilters = new Set(['q','p','v','d','l','custom']);
+let learnMode = false, libraryOpen = false;
+let currentFC = null;
+let cmEmoji = '⭐', cmPhotoUrl = null, cmRecBlob = null, cmRecUrl = null;
+let cmRecorder = null, cmChunks = [];
+let qpbWords = [], qpbDot = '#D544C0';
+let kbBuf = '';
+let vSpeed = 0.85, vPitch = 1.05, vVol = 0.9;
+
+// ═══════════════════════════════════════════════════════
+//  BACKEND HELPERS  (wired to your FastAPI server)
+// ═══════════════════════════════════════════════════════
+
+/**
+ * Check if a custom voice recording exists on the server for a given word label.
+ * Endpoint: GET /has-recording/{word}  → { exists: bool }
+ */
+async function hasRecording(label) {
+  try {
+    const res = await fetch(`/has-recording/${encodeURIComponent(label)}`);
+    const data = await res.json();
+    return data.exists;
+  } catch { return false; }
+}
+
+/**
+ * Play a word: use server recording if available, fall back to TTS.
+ * Endpoint: GET /recordings/{word}  → audio/webm file
+ */
+async function playWord(label) {
+  const exists = await hasRecording(label);
+  if (exists) {
+    const audio = new Audio(`/recordings/${encodeURIComponent(label)}`);
+    audio.play();
+  } else {
+    const u = new SpeechSynthesisUtterance(label);
+    u.rate = vSpeed; u.pitch = vPitch; u.volume = vVol;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+  }
+}
+
+/**
+ * Upload a voice recording to the server.
+ * Endpoint: POST /upload-voice  body: FormData { word, audio }
+ */
+async function uploadRecording(label, blob) {
+  const fd = new FormData();
+  fd.append('word', label);
+  fd.append('audio', blob, `${label}.webm`);
+  await fetch('/upload-voice', { method: 'POST', body: fd });
+}
+
+// ═══════════════════════════════════════════════════════
+//  GRID RENDERING
+// ═══════════════════════════════════════════════════════
+function allWords() {
+  return [...BASE, ...customWords.map(w => ({...w, pos:'custom'}))];
+}
+function getKey(w) { return w.id || (w.pos + '_' + w.l); }
+
+async function renderGrid() {
+  const words   = allWords().filter(w => activeFilters.has(w.pos));
+  const starred = words.filter(w => starredIds.has(getKey(w)));
+  const rest    = words.filter(w => !starredIds.has(getKey(w)));
+
+  // Check recordings in parallel for all visible words
+  const recChecks = await Promise.all(words.map(w => hasRecording(w.l)));
+  const recSet = new Set(words.filter((_,i) => recChecks[i]).map(w => w.l));
+
+  let html = '';
+  if (starred.length) {
+    html += `<div class="grid-section-label">⭐ Starred</div>`;
+    html += starred.map(w => cardHTML(w, recSet.has(w.l))).join('');
+  }
+  if (starred.length && rest.length) html += `<div class="grid-section-label">All words</div>`;
+  html += rest.map(w => cardHTML(w, recSet.has(w.l))).join('');
+
+  const g = document.getElementById('sym-grid');
+  g.className = 'sym-grid' + (learnMode ? ' learn-mode-grid' : '');
+  g.innerHTML = html;
+}
+
+function cardHTML(w, hasRec) {
+  const key = getKey(w);
+  const isCustom  = w.custom || w.pos === 'custom';
+  const isStarred = starredIds.has(key);
+  return `<div class="sc ${w.pos}${hasRec ? ' has-recording' : ''}" data-key="${key}" onclick="handleCard('${esc(key)}')">
+    ${isCustom  ? '<div class="sc-custom-badge">✦</div>' : ''}
+    <button class="sc-star-btn ${isStarred ? 'starred' : ''}" onclick="toggleStar(event,'${esc(key)}')">${isStarred ? '★' : '☆'}</button>
+    <div class="sc-rec-badge" title="Custom voice saved">🎤</div>
+    <div class="sc-emoji" style="${w.photoUrl ? `font-size:0;background:url('${w.photoUrl}') center/cover;border-radius:12px;width:68px;height:68px;` : ''}">${w.photoUrl ? '' : w.i}</div>
+    <div class="sc-label">${w.l}</div>
+    <button class="sc-rec-btn" onclick="inlineRecord(event,'${esc(w.l)}')">${hasRec ? '🎤 re-record' : '🎤 record'}</button>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  INLINE CARD RECORDING  (hover "record" button on any card)
+// ═══════════════════════════════════════════════════════
+const activeRecorders = {};
+
+async function inlineRecord(e, label) {
+  e.stopPropagation();
+  const btn = e.target;
+
+  if (activeRecorders[label]) {
+    clearTimeout(activeRecorders[label].timeout);
+    activeRecorders[label].recorder.stop();
+    return;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const recorder = new MediaRecorder(stream);
+    const chunks = [];
+
+    btn.textContent = '⏹ stop';
+    btn.classList.add('recording');
+
+    recorder.ondataavailable = ev => chunks.push(ev.data);
+    recorder.onstop = async () => {
+      delete activeRecorders[label];
+      stream.getTracks().forEach(t => t.stop());
+      const blob = new Blob(chunks, { type: 'audio/webm' });
+      await uploadRecording(label, blob);
+      toast(`🎤 Voice saved for "${label}"`);
+      renderGrid();
+    };
+
+    const timeout = setTimeout(() => {
+      if (activeRecorders[label]) activeRecorders[label].recorder.stop();
+    }, 10000);
+
+    activeRecorders[label] = { recorder, stream, timeout };
+    recorder.start();
+
+  } catch {
+    toast('Microphone access denied');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  CARD INTERACTION
+// ═══════════════════════════════════════════════════════
+function handleCard(key) {
+  const w = allWords().find(x => getKey(x) === key);
+  if (!w) return;
+  if (learnMode) { openFlashcard(w); return; }
+  playWord(w.l);  // ← uses backend recording if available
+  addWord(w.l, w.i, document.querySelector(`[data-key="${key}"]`), w);
+}
+
+function toggleStar(e, key) {
+  e.stopPropagation();
+  starredIds.has(key) ? starredIds.delete(key) : starredIds.add(key);
+  renderGrid();
+}
+
+// ═══════════════════════════════════════════════════════
+//  QUICK PHRASES
+// ═══════════════════════════════════════════════════════
+function renderQP() {
+  const items = [
+    ...qpData,
+    ...customWords.filter(w => w.addToQF).map(w => ({dot: getAccent(), t: w.l}))
+  ];
+  document.getElementById('qp-list').innerHTML = items.map(p =>
+    `<div class="qp-item" onclick="fireQP('${esc(p.t)}')">
+      <div class="qp-dot" style="background:${p.dot}"></div>
+      <div class="qp-text">${p.t}</div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  FLASHCARD
+// ═══════════════════════════════════════════════════════
+function openFlashcard(w) {
+  currentFC = w;
+  const el = document.getElementById('fc-emoji');
+  el.style.background = POS_COLORS[w.pos] || 'var(--bg)';
+  if (w.photoUrl) {
+    el.style.backgroundImage = `url('${w.photoUrl}')`;
+    el.style.backgroundSize = 'cover'; el.style.backgroundPosition = 'center';
+    el.textContent = '';
+  } else {
+    el.style.backgroundImage = ''; el.textContent = w.i;
+  }
+  document.getElementById('fc-word').textContent = w.l;
+  document.getElementById('fc-desc').textContent = w.desc || 'No description added yet.';
+  const pe = document.getElementById('fc-pos');
+  pe.textContent = POS_NAMES[w.pos] || 'Word';
+  pe.style.background = POS_COLORS[w.pos] || 'var(--bg)'; pe.style.color = '#333';
+  openOv('ov-flash');
+  playWord(w.l);  // plays backend recording if available
+}
+
+function useFlashcard() {
+  if (!currentFC) return;
+  addWord(currentFC.l, currentFC.i, null, currentFC);
+  closeOv('ov-flash');
+  toast('Added "' + currentFC.l + '" to message');
+}
+
+// ═══════════════════════════════════════════════════════
+//  LEARNING MODE
+// ═══════════════════════════════════════════════════════
+function toggleLearnMode() {
+  learnMode = !learnMode;
+  const tb = document.querySelector('.topbar');
+  document.getElementById('learn-banner').classList.toggle('visible', learnMode);
+  document.getElementById('filter-row').style.display = learnMode ? 'none' : 'block';
+  tb.style.opacity = learnMode ? '0.45' : '1';
+  tb.style.pointerEvents = learnMode ? 'none' : 'all';
+  document.getElementById('nav-learn').classList.toggle('active-tab', learnMode);
+  document.getElementById('learn-label').textContent = learnMode ? 'Exit Learn' : 'Learn';
+  renderGrid();
+  if (learnMode) toast('Learning mode on — tap a card to see its flashcard');
+}
+function exitLearn() { if (learnMode) toggleLearnMode(); }
+
+// ═══════════════════════════════════════════════════════
+//  FILTER
+// ═══════════════════════════════════════════════════════
+function toggleFilter(el) {
+  const pos = el.dataset.pos;
+  activeFilters.has(pos)
+    ? (activeFilters.delete(pos), el.classList.remove('active'), el.classList.add('inactive'))
+    : (activeFilters.add(pos),   el.classList.add('active'),    el.classList.remove('inactive'));
+  renderGrid();
+}
+
+let pendingFilters = new Set();
+function openFilterModal() {
+  pendingFilters = new Set(activeFilters);
+  document.getElementById('fm-opts').innerHTML = FILTER_DEFS.map(f =>
+    `<div class="fm-opt ${activeFilters.has(f.pos) ? 'selected' : ''}" data-pos="${f.pos}" onclick="toggleFMOpt(this)">
+      <div class="fm-opt-dot" style="background:${f.color}"></div>
+      <div class="fm-opt-label">${f.label}</div>
+      <div class="fm-opt-check">${activeFilters.has(f.pos) ? '✓' : ''}</div>
+    </div>`).join('');
+  openOv('ov-filter');
+}
+
+function toggleFMOpt(el) {
+  const pos = el.dataset.pos, check = el.querySelector('.fm-opt-check');
+  pendingFilters.has(pos)
+    ? (pendingFilters.delete(pos), el.classList.remove('selected'), check.textContent = '')
+    : (pendingFilters.add(pos),   el.classList.add('selected'),    check.textContent = '✓');
+}
+
+function applyFilters() {
+  activeFilters = new Set(pendingFilters);
+  document.querySelectorAll('.fpill').forEach(p => {
+    p.classList.toggle('active',   activeFilters.has(p.dataset.pos));
+    p.classList.toggle('inactive', !activeFilters.has(p.dataset.pos));
+  });
+  renderGrid(); closeOv('ov-filter');
+}
+
+// ═══════════════════════════════════════════════════════
+//  CREATE WORD  (saves recording to backend via uploadRecording)
+// ═══════════════════════════════════════════════════════
+function openCreate() {
+  cmEmoji = '⭐'; cmPhotoUrl = null; cmRecBlob = null; cmRecUrl = null;
+  document.getElementById('cm-preview').textContent = '⭐';
+  document.getElementById('cm-preview').style.backgroundImage = '';
+  document.getElementById('cm-name').value = '';
+  document.getElementById('cm-desc').value = '';
+  document.getElementById('cm-pos').value = 'n';
+  document.getElementById('cm-ei').value = '';
+  document.getElementById('cm-photo-prev').innerHTML = '📷';
+  document.getElementById('cm-photo-prev').style.backgroundImage = '';
+  document.getElementById('tog-core').classList.add('on');
+  document.getElementById('tog-qf').classList.remove('on');
+  clearRec(); renderCMGrid('⭐'); openOv('ov-create');
+}
+
+function renderCMGrid(sel) {
+  document.getElementById('cm-egrid').innerHTML = EMOJI_SUGG.map(e =>
+    `<div class="cm-emoji-opt ${e === sel ? 'picked' : ''}" onclick="setCMEmoji('${e}')">${e}</div>`).join('');
+}
+
+function setCMEmoji(e) {
+  if (!e) return;
+  const em = [...e][0] || e; cmEmoji = em;
+  document.getElementById('cm-preview').textContent = em;
+  document.getElementById('cm-ei').value = em;
+  document.querySelectorAll('.cm-emoji-opt').forEach(el => el.classList.toggle('picked', el.textContent === em));
+}
+
+function handlePhoto(input) {
+  const file = input.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = e => {
+    cmPhotoUrl = e.target.result;
+    document.getElementById('cm-photo-prev').innerHTML = `<img src="${cmPhotoUrl}" style="width:100%;height:100%;object-fit:cover;">`;
+    const prev = document.getElementById('cm-preview');
+    prev.textContent = ''; prev.style.backgroundImage = `url('${cmPhotoUrl}')`;
+    prev.style.backgroundSize = 'cover'; prev.style.backgroundPosition = 'center';
+  };
+  r.readAsDataURL(file);
+}
+
+function toggleRec() {
+  if (cmRecorder && cmRecorder.state === 'recording') { cmRecorder.stop(); return; }
+  navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+    cmChunks = []; cmRecorder = new MediaRecorder(stream);
+    cmRecorder.ondataavailable = e => cmChunks.push(e.data);
+    cmRecorder.onstop = () => {
+      cmRecBlob = new Blob(cmChunks, { type: 'audio/webm' });
+      cmRecUrl  = URL.createObjectURL(cmRecBlob);
+      stream.getTracks().forEach(t => t.stop());
+      document.getElementById('cm-rec-btn').classList.remove('recording');
+      document.getElementById('cm-rec-lbl').textContent = 'Record again';
+      document.getElementById('cm-playback').style.display = 'flex';
+      toast('Recording ready ✓');
+    };
+    cmRecorder.start();
+    document.getElementById('cm-rec-btn').classList.add('recording');
+    document.getElementById('cm-rec-lbl').textContent = 'Stop recording';
+  }).catch(() => toast('Mic not available'));
+}
+
+function playRec() { if (cmRecUrl) new Audio(cmRecUrl).play(); }
+
+function clearRec() {
+  cmRecBlob = null; cmRecUrl = null;
+  document.getElementById('cm-rec-btn').classList.remove('recording');
+  document.getElementById('cm-rec-lbl').textContent = 'Start recording';
+  document.getElementById('cm-playback').style.display = 'none';
+}
+
+async function saveWord() {
+  const name = document.getElementById('cm-name').value.trim();
+  if (!name) { toast('Enter a word or phrase first'); return; }
+
+  const id = 'cw_' + Date.now();
+  const wordObj = {
+    id, i: cmEmoji, l: name,
+    pos:       document.getElementById('cm-pos').value,
+    desc:      document.getElementById('cm-desc').value.trim(),
+    photoUrl:  cmPhotoUrl,
+    addToQF:   document.getElementById('tog-qf').classList.contains('on'),
+    addToCore: document.getElementById('tog-core').classList.contains('on'),
+    custom:    true,
+  };
+  customWords.push(wordObj);
+
+  // Upload recording to backend if one was captured
+  if (cmRecBlob) {
+    await uploadRecording(name, cmRecBlob);
+    toast(`✦ "${name}" saved with custom voice`);
+  } else {
+    toast(`✦ "${name}" saved`);
+  }
+
+  renderGrid(); renderQP();
+  if (libraryOpen) renderLibrary();
+  closeOv('ov-create');
+}
+
+// ═══════════════════════════════════════════════════════
+//  LIBRARY
+// ═══════════════════════════════════════════════════════
+function toggleLibrary() {
+  libraryOpen = !libraryOpen;
+  libraryOpen ? openOv('library-overlay') : closeOv('library-overlay');
+  document.getElementById('nav-library').classList.toggle('active-tab', libraryOpen);
+  if (libraryOpen) renderLibrary();
+}
+
+function renderLibrary() {
+  const count = customWords.length;
+  document.getElementById('lib-count').textContent = count + ' word' + (count !== 1 ? 's' : '') + ' saved';
+  const empty = document.getElementById('lib-empty');
+  const grid  = document.getElementById('lib-grid-inner');
+  if (!count) { empty.style.display = 'flex'; grid.innerHTML = ''; return; }
+  empty.style.display = 'none';
+  grid.innerHTML = customWords.map(w => {
+    const key = getKey(w);
+    const isStarred = starredIds.has(key);
+    return `<div class="sc custom" data-key="${key}" style="cursor:default;">
+      <div class="sc-custom-badge">✦</div>
+      <button class="sc-star-btn ${isStarred ? 'starred' : ''}" style="opacity:1;" onclick="toggleStar(event,'${esc(key)}')">${isStarred ? '★' : '☆'}</button>
+      <div class="sc-emoji" style="${w.photoUrl ? `font-size:0;background:url('${w.photoUrl}') center/cover;border-radius:12px;width:68px;height:68px;` : ''}">${w.photoUrl ? '' : w.i}</div>
+      <div class="sc-label">${w.l}</div>
+      <button onclick="deleteCustomWord('${esc(w.id)}')" style="position:absolute;bottom:8px;right:8px;width:30px;height:30px;border-radius:8px;background:rgba(0,0,0,0.09);border:none;cursor:pointer;font-size:16px;font-weight:700;color:var(--text2);display:flex;align-items:center;justify-content:center;transition:background .12s;" onmouseover="this.style.background='#FAECE7';this.style.color='#D85A30';" onmouseout="this.style.background='rgba(0,0,0,0.09)';this.style.color='var(--text2)';">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function deleteCustomWord(id) {
+  customWords = customWords.filter(w => w.id !== id);
+  starredIds.delete(id);
+  renderGrid(); renderQP(); renderLibrary();
+  toast('Word removed');
+}
+
+// ═══════════════════════════════════════════════════════
+//  QP BUILDER
+// ═══════════════════════════════════════════════════════
+function openQPBuilder() {
+  qpbWords = []; qpbDot = '#D544C0';
+  document.getElementById('qpb-chips').innerHTML = '<span style="font-size:14px;color:var(--text2);align-self:center;">Tap words below or type…</span>';
+  document.getElementById('qpb-type').value = '';
+  document.getElementById('qpb-dot-preview').style.background = '#D544C0';
+  document.querySelectorAll('.color-dot-pick').forEach((d, i) => d.classList.toggle('selected', i === 0));
+  document.getElementById('qpb-word-grid').innerHTML = BASE.slice(0, 30).map(w =>
+    `<div class="qp-word-btn" onclick="addQPWord('${esc(w.l)}')">${w.i} ${w.l}</div>`).join('');
+  openOv('ov-qpb');
+}
+
+function addQPWord(word) {
+  if (!word || !word.trim()) return;
+  qpbWords.push(word.trim()); renderQPBChips();
+}
+
+function renderQPBChips() {
+  const c = document.getElementById('qpb-chips');
+  if (!qpbWords.length) {
+    c.innerHTML = '<span style="font-size:14px;color:var(--text2);align-self:center;">Tap words below or type…</span>';
+    return;
+  }
+  c.innerHTML = qpbWords.map((w, i) =>
+    `<span class="wchip" onclick="removeQPBWord(${i})">${w} ✕</span>`).join('');
+}
+
+function removeQPBWord(i) { qpbWords.splice(i, 1); renderQPBChips(); }
+
+function selectQPDot(el) {
+  document.querySelectorAll('.color-dot-pick').forEach(d => d.classList.remove('selected'));
+  el.classList.add('selected'); qpbDot = el.dataset.dot;
+  document.getElementById('qpb-dot-preview').style.background = qpbDot;
+}
+
+function setCustomQPDot(val) {
+  qpbDot = val; document.getElementById('qpb-dot-preview').style.background = val;
+  document.querySelectorAll('.color-dot-pick').forEach(d => d.classList.remove('selected'));
+}
+
+function saveQP() {
+  const text = qpbWords.join(' ');
+  if (!text.trim()) { toast('Add at least one word'); return; }
+  qpData.push({ dot: qpbDot, t: text });
+  renderQP(); closeOv('ov-qpb');
+  toast('Phrase saved: "' + text + '"');
+}
+
+// ═══════════════════════════════════════════════════════
+//  SENTENCE BAR
+// ═══════════════════════════════════════════════════════
+function addWord(word, icon, el, wordObj) {
+  sentence.push({ word, icon });
+  if (el) { el.classList.add('tap'); setTimeout(() => el.classList.remove('tap'), 220); }
+  playTap();
+  updateMsgBar();
+  document.getElementById('undo-btn').style.display = 'flex';
+}
+
+function undoWord() {
+  sentence.pop(); updateMsgBar();
+  if (!sentence.length) document.getElementById('undo-btn').style.display = 'none';
+}
+
+function clearMsg() {
+  sentence = []; updateMsgBar();
+  document.getElementById('undo-btn').style.display = 'none';
+}
+
+function updateMsgBar() {
+  const area = document.getElementById('msg-area');
+  const ph   = document.getElementById('msg-ph');
+  area.querySelectorAll('.mword').forEach(e => e.remove());
+  if (!sentence.length) { if (ph && !ph.isConnected) area.appendChild(ph); return; }
+  ph && ph.remove();
+  sentence.forEach((w, i) => {
+    const s = document.createElement('span');
+    s.className = 'mword';
+    s.innerHTML = `<span style="font-size:17px">${w.icon}</span>${w.word}`;
+    s.onclick = () => {
+      sentence.splice(i, 1); updateMsgBar();
+      if (!sentence.length) document.getElementById('undo-btn').style.display = 'none';
+    };
+    area.appendChild(s);
+  });
+}
+
+async function speakMsg() {
+  if (!sentence.length) { toast('Add some words first!'); return; }
+  const b = document.getElementById('speak-btn');
+  b.classList.add('go'); setTimeout(() => b.classList.remove('go'), 1400);
+
+  for (const w of sentence) {
+    await playWordAndWait(w.word);
+  }
+}
+
+// Play a word using its custom recording if available, else TTS.
+// Returns a Promise that resolves when the word finishes playing.
+function playWordAndWait(label) {
+  return new Promise(async resolve => {
+    const exists = await hasRecording(label);
+    if (exists) {
+      const audio = new Audio(`/recordings/${encodeURIComponent(label)}`);
+      audio.onended = resolve;
+      audio.onerror = resolve; // fall through on error
+      audio.play();
+    } else {
+      const u = new SpeechSynthesisUtterance(label);
+      u.rate = vSpeed; u.pitch = vPitch; u.volume = vVol;
+      u.onend = resolve;
+      u.onerror = resolve;
+      speechSynthesis.cancel();
+      speechSynthesis.speak(u);
+    }
+  });
+}
+
+function fireQP(text) { doSpeak(text); toast('🔊 ' + text); }
+
+function doSpeak(text) {
+  if (!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = vSpeed; u.pitch = vPitch; u.volume = vVol;
+  speechSynthesis.speak(u);
+}
+
+// ═══════════════════════════════════════════════════════
+//  KEYBOARD
+// ═══════════════════════════════════════════════════════
+function openKB() {
+  kbBuf = '';
+  const pt = document.getElementById('kbpt');
+  pt.textContent = 'Start typing…'; pt.style.color = 'var(--text2)';
+  const rows = [
+    ['q','w','e','r','t','y','u','i','o','p'],
+    ['a','s','d','f','g','h','j','k','l'],
+    ['⌫','z','x','c','v','b','n','m','↵'],
+  ];
+  document.getElementById('kb-rows').innerHTML = rows.map(r =>
+    `<div class="kb-row">${r.map(k =>
+      `<div class="key ${(k==='⌫'||k==='↵') ? 'wide' : ''}" onclick="kbTap('${k}')">${k}</div>`
+    ).join('')}</div>`
+  ).join('') + `<div class="kb-row"><div class="key space" onclick="kbTap(' ')">space</div></div>`;
+  openOv('ov-kb');
+}
+
+function kbTap(k) {
+  if (k === '⌫') kbBuf = kbBuf.slice(0, -1);
+  else if (k === '↵') addKBWord();
+  else kbBuf += k;
+  const el = document.getElementById('kbpt');
+  el.textContent = kbBuf || 'Start typing…';
+  el.style.color = kbBuf ? 'var(--text)' : 'var(--text2)';
+}
+
+function kbPred(w) {
+  addWord(w, '⌨️', null, null); kbBuf = '';
+  const el = document.getElementById('kbpt');
+  el.textContent = 'Start typing…'; el.style.color = 'var(--text2)';
+}
+
+function addKBWord() {
+  if (kbBuf.trim()) {
+    addWord(kbBuf.trim(), '⌨️', null, null); kbBuf = '';
+    const el = document.getElementById('kbpt');
+    el.textContent = 'Start typing…'; el.style.color = 'var(--text2)';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  SETTINGS
+// ═══════════════════════════════════════════════════════
+function updateSl(id, vid, key) {
+  const v = document.getElementById(id).value;
+  document.getElementById(vid).textContent = v + '%';
+  if (key === 'speed') vSpeed = v / 100;
+  if (key === 'pitch') vPitch = v / 100;
+  if (key === 'vol')   vVol   = v / 100;
+}
+
+function setTheme(el) {
+  document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.documentElement.style.setProperty('--accent', el.dataset.c);
+  document.documentElement.style.setProperty('--accent-light', el.dataset.l);
+}
+
+function applyCustomColor(val) {
+  document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+  document.getElementById('custom-swatch').style.background = val;
+  const r = parseInt(val.slice(1,3),16), g = parseInt(val.slice(3,5),16), b = parseInt(val.slice(5,7),16);
+  document.documentElement.style.setProperty('--accent', val);
+  document.documentElement.style.setProperty('--accent-light', `rgba(${r},${g},${b},0.12)`);
+}
+
+function getAccent() {
+  return getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#3F35AF';
+}
+
+// ═══════════════════════════════════════════════════════
+//  OVERLAY HELPERS
+// ═══════════════════════════════════════════════════════
+function openOv(id)  { document.getElementById(id).classList.add('show'); }
+function closeOv(id) { document.getElementById(id).classList.remove('show'); }
+
+// ═══════════════════════════════════════════════════════
+//  TAP SOUND
+// ═══════════════════════════════════════════════════════
+let audioCtx;
+function playTap() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.connect(g); g.connect(audioCtx.destination);
+    o.type = 'sine';
+    o.frequency.setValueAtTime(440, audioCtx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.08);
+    g.gain.setValueAtTime(0.08, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+    o.start(); o.stop(audioCtx.currentTime + 0.1);
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════════
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+function esc(s) { return String(s).replace(/'/g, "\\'"); }
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+renderGrid();
+renderQP();
+renderCMGrid('⭐');
+</script>
 </body>
 </html>
